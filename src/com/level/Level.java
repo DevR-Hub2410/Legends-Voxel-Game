@@ -12,6 +12,8 @@ public class Level {
 	private final byte[] blocks;
 	private final int[] lightDepths;
 	
+	private final ArrayList<LevelListener> levelListeners = new ArrayList<>();
+	
 	public Level(int width, int height, int depth) {
 		this.width = width;
 		this.height = height;
@@ -25,51 +27,10 @@ public class Level {
 				for(int z = 0; z < height; z++) {
 					int index = (y * this.height + z) * this.width + x;
 					
-					blocks[index] = (byte) 1;
+					blocks[index] = (byte) ((y <= depth * 2 / 3) ? 1 : 0);
 				}
 			}
 		}
-		
-		/* for (int i = 0; i < 10000; i++) {
-            int caveSize = (int) (Math.random() * 7) + 1;
-
-            int caveX = (int) (Math.random() * width);
-            int caveY = (int) (Math.random() * depth);
-            int caveZ = (int) (Math.random() * height);
-
-            // Grow cave
-            for (int radius = 0; radius < caveSize; radius++) {
-                for (int sphere = 0; sphere < 1000; sphere++) {
-                    int offsetX = (int) (Math.random() * radius * 2 - radius);
-                    int offsetY = (int) (Math.random() * radius * 2 - radius);
-                    int offsetZ = (int) (Math.random() * radius * 2 - radius);
-
-                    // Sphere shape
-                    double distance = Math.pow(offsetX, 2) + Math.pow(offsetY, 2) + Math.pow(offsetZ, 2);
-                    if (distance > radius * radius)
-                        continue;
-
-                    int tileX = caveX + offsetX;
-                    int tileY = caveY + offsetY;
-                    int tileZ = caveZ + offsetZ;
-
-                    // Calculate index from x, y and z
-                    int index = (tileY * this.height + tileZ) * this.width + tileX;
-
-                    // Check if tile is out of level
-                    if (index >= 0 && index < this.blocks.length) {
-
-                        // Border of level
-                        if (tileX > 0 && tileY > 0 && tileZ > 0
-                                && tileX < this.width - 1 && tileY < this.depth && tileZ < this.height - 1) {
-
-                            // Fill level with tiles
-                            this.blocks[index] = (byte) 0;
-                        }
-                    }
-                }
-            }
-        } */
 		
 		calcLightDepths(0, 0, width, height);
 	}
@@ -77,7 +38,7 @@ public class Level {
 	private void calcLightDepths(int x0, int z0, int x1, int z1) {
 		for(int x = x0; x < x0 + x1; x++) {
 			for(int z = z0; z < z0 + z1; z++) {
-				// int prevDepth = lightDepths[x + z * width];
+				int prevDepth = lightDepths[x + z * width];
 				int depth = this.depth - 1;
 				
 				while(depth > 0 && !isLightBlocker(x, depth, z)) {
@@ -85,6 +46,15 @@ public class Level {
 				}
 				
 				lightDepths[x + z * width] = depth;
+				
+				if(prevDepth != depth) {
+					int minTileChangeY = Math.min(prevDepth, depth);
+					int maxTileChangeY = Math.max(prevDepth, depth);
+					
+					for(LevelListener levelListener : levelListeners) {
+						levelListener.lightColumnChanged(x, z, minTileChangeY, maxTileChangeY);
+					}
+				}
 			}
 		}
 	}
@@ -151,6 +121,24 @@ public class Level {
 		}
 		
 		return boundingBoxList;
+	}
+	
+	public void setTile(int x, int y, int z, int id) {
+		if(x < 0 || y < 0 || z < 0 || x >= width || y >= depth || z >= height) {
+			return;
+		}
+		
+		blocks[(y * height + z) * width + x] = (byte) id;
+		
+		calcLightDepths(x, z, 1, 1);
+		
+		for(LevelListener levelListener : levelListeners) {
+			levelListener.tileChanged(x, y, z);
+		}
+	}
+	
+	public void addListener(LevelListener levelListener) {
+		levelListeners.add(levelListener);
 	}
 
 }

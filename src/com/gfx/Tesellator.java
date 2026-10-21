@@ -83,15 +83,23 @@ public class Tesellator {
 		}
 		
 		GL11.glDrawArrays(GL11.GL_QUADS, GL11.GL_POINTS, vertices);
+		GL11.glDisableClientState(GL11.GL_VERTEX_ARRAY);
 		if(hasTexture) {
 			GL11.glDisableClientState(GL11.GL_TEXTURE_COORD_ARRAY);
 		}
-		GL11.glDisableClientState(GL11.GL_VERTEX_ARRAY);
 		if(hasColor) {
 			GL11.glDisableClientState(GL11.GL_COLOR_ARRAY);
 		}
 		
 		clear();
+	}
+	
+	public void color(int color) {
+		float r = (color >> 16 & 0xFF) / 255.0F;
+		float g = (color >> 8 & 0xFF) / 255.0F;
+		float b = (color & 0xFF) / 255.0F;
+		
+		color(r, g, b);
 	}
 	
 	private void clear() {

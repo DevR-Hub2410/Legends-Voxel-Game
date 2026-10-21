@@ -8,6 +8,7 @@ import com.level.tile.Tile;
 import com.phys.AABB;
 
 public class Chunk {
+	private static final int TEXTURE = Textures.loadTexture("/terrain.png", GL11.GL_NEAREST);
 	private static final Tesellator t = new Tesellator();
 	
 	public static int rebuiltFrame;
@@ -55,8 +56,7 @@ public class Chunk {
 		GL11.glNewList(lists + layer, GL11.GL_COMPILE);
 		GL11.glEnable(GL11.GL_TEXTURE_2D);
 		
-		int texture = Textures.loadTexture("/terrain.png", GL11.GL_NEAREST);
-		GL11.glBindTexture(GL11.GL_TEXTURE, texture);
+		GL11.glBindTexture(GL11.GL_TEXTURE_2D, TEXTURE);
 		
 		t.init();
 		
@@ -64,7 +64,8 @@ public class Chunk {
 			for(int y = y0; y < y1; y++) {
 				for(int z = z0; z < z1; z++) {
 					if(level.isTile(x, y, z)) {
-						if(y > level.depth * 2 / 3) {
+						int id = (y != level.depth * 2 / 3) ? 1 : 0;
+						if(id == 0) {
 							Tile.grass.render(t, level, layer, x, y, z);
 						}else {
 							Tile.rock.render(t, level, layer, x, y, z);

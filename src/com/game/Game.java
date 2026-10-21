@@ -11,21 +11,29 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.glu.GLU;
 
 import com.entity.Player;
+import com.gfx.HitResult;
+import com.gfx.Tesellator;
+import com.gfx.Textures;
+import com.gui.Font;
 import com.level.Chunk;
 import com.level.Level;
 import com.level.LevelRender;
 
 public class Game implements Runnable{
-	private static final int WIDTH = 950;
-	private static final int HEIGHT = 650;
+	private static final int WIDTH = 1024;
+	private static final int HEIGHT = 768;
 	private static final String TITLE = "Legends Voxel Game";
 	public static final String VERSION = "0.0.0.1";
 	
 	private final FloatBuffer fogColor = BufferUtils.createFloatBuffer(4);
+	
+	private Font font;
+	public Textures textures;
 
 	private Level level;
 	private LevelRender render;
 	private Player player;
+	private HitResult hitResult;
 	
 	private boolean running = false;
 	
@@ -47,20 +55,17 @@ public class Game implements Runnable{
 		GL11.glShadeModel(GL11.GL_SMOOTH);
 		GL11.glClearColor(0.5F, 0.8F, 1.0F, 0.0F);
 		GL11.glClearDepth(1.0);
+		
 		GL11.glEnable(GL11.GL_DEPTH_TEST);
 		GL11.glEnable(GL11.GL_CULL_FACE);
 		GL11.glDepthFunc(GL11.GL_LEQUAL);
 		
-		GL11.glMatrixMode(GL11.GL_PROJECTION);
-		GL11.glLoadIdentity();
-		
-		GLU.gluPerspective(70.0F, WIDTH / (float) HEIGHT, 0.05F, 1000.0F);
-		
-		GL11.glMatrixMode(GL11.GL_MODELVIEW);
-		
-		level = new Level(64, 64, 64);
+		level = new Level(256, 256, 64);
 		render = new LevelRender(level);
 		player = new Player(level);
+		
+		textures = new Textures();
+		font = new Font("/font.png", textures);
 		
 		Mouse.setGrabbed(true);
 	}
@@ -116,6 +121,18 @@ public class Game implements Runnable{
 		}
 	}
 	
+	public void destroy() {
+		running = false;
+		
+		Display.destroy();
+		Keyboard.destroy();
+		Mouse.destroy();
+	}
+	
+	private void tick() {
+		player.tick();
+	}
+	
 	private void moveCameraToPlayer() {
 		Player player = this.player;
 		
@@ -131,16 +148,20 @@ public class Game implements Runnable{
 		GL11.glTranslated(-x, -y, -z);
 	}
 	
-	public void destroy() {
-		running = false;
+	private void setupCamera() {
+		GL11.glMatrixMode(GL11.GL_PROJECTION);
+		GL11.glLoadIdentity();
 		
-		Display.destroy();
-		Keyboard.destroy();
-		Mouse.destroy();
+		GLU.gluPerspective(70.0F, WIDTH / (float) HEIGHT, 0.05F, 1000.0F);
+		
+		GL11.glMatrixMode(GL11.GL_MODELVIEW);
+		GL11.glLoadIdentity();
+		
+		moveCameraToPlayer();
 	}
 	
-	private void tick() {
-		player.tick();
+	private void pick() {
+	    hitResult = render.pick(player);
 	}
 	
 	private void render() {
@@ -148,9 +169,30 @@ public class Game implements Runnable{
 		float motionY = Mouse.getDY();
 		
 		player.turn(motionX, motionY);
+		
+		pick();
+		while(Mouse.next()) {
+			if(Mouse.getEventButton() == 0 && Mouse.getEventButtonState() && hitResult != null) {
+				level.setTile(hitResult.x, hitResult.y, hitResult.z, 0);
+			}
+			
+			if(Mouse.getEventButton() == 1 && Mouse.getEventButtonState() && hitResult != null) {
+				int x = hitResult.x;
+				int y = hitResult.y;
+				int z = hitResult.z;
+				
+				if(hitResult.face == 0) y--;
+				if(hitResult.face == 1) y++;
+				if(hitResult.face == 2) z--;
+				if(hitResult.face == 3) z++;
+				if(hitResult.face == 4) x--;
+				if(hitResult.face == 5) x++;
+				
+				level.setTile(x, y, z, 1);
+			}
+		}
 		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
-		GL11.glLoadIdentity();
-		moveCameraToPlayer();
+		setupCamera();
 		
 		GL11.glEnable(GL11.GL_FOG);
 		GL11.glFogi(GL11.GL_FOG_MODE, GL11.GL_LINEAR);
@@ -167,7 +209,43 @@ public class Game implements Runnable{
 		
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
 		
+		if(hitResult != null) {
+			render.renderHit(hitResult);
+		}
+		
+		GL11.glDisable(GL11.GL_FOG);
+		
+		drawGui();
+		
 		Display.update();
+	}
+	public void drawGui() {
+		int screenWidth = WIDTH * 240 / HEIGHT;
+		int screenHeight = HEIGHT * 240 / HEIGHT;
+		
+		GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
+		GL11.glMatrixMode(GL11.GL_PROJECTION);
+		GL11.glLoadIdentity();
+		GL11.glOrtho(0.0D, screenWidth, screenHeight, 0.0D, 100.0D, 300.0D);
+		GL11.glMatrixMode(GL11.GL_MODELVIEW);
+		GL11.glLoadIdentity();
+		GL11.glTranslatef(0.0F, 0.0F, -200.0F);
+		Tesellator t = new Tesellator();
+		this.font.draw(VERSION, 2, 2, -1);
+		
+		int wc = screenWidth / 2;
+		int hc = screenHeight / 2;
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+		t.init();
+		t.vertex((wc + 1), (hc - 4), 0.0F);
+		t.vertex((wc - 0), (hc - 4), 0.0F);
+		t.vertex((wc - 0), (hc + 5), 0.0F);
+		t.vertex((wc + 1), (hc + 5), 0.0F);
+		t.vertex((wc + 5), (hc - 0), 0.0F);
+		t.vertex((wc - 4), (hc - 0), 0.0F);
+		t.vertex((wc - 4), (hc + 1), 0.0F);
+		t.vertex((wc + 5), (hc + 1), 0.0F);
+		t.flush();
 	}
 
 	public static void main(String[] args) {

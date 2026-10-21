@@ -117,5 +117,51 @@ public class Tile {
 			}
 		}
 	}
+	
+	public void renderFace(Tesellator t, int x, int y, int z, int face) {
+		float x0 = x + 0.0F;
+		float y0 = y + 0.0F;
+		float z0 = z + 0.0F;
+		float x1 = x + 1.0F;
+		float y1 = y + 1.0F;
+		float z1 = z + 1.0F;
+		
+		if(face == 0) {
+			t.vertex(x0, y0, z1);
+			t.vertex(x0, y0, z0);
+			t.vertex(x1, y0, z0);
+			t.vertex(x1, y0, z1);
+		}
+		if(face == 1) {
+			t.vertex(x1, y1, z1);
+			t.vertex(x1, y1, z0);
+			t.vertex(x0, y1, z0);
+			t.vertex(x0, y1, z1);
+		}
+		if(face == 2) {
+			t.vertex(x0, y1, z0);
+			t.vertex(x1, y1, z0);
+			t.vertex(x1, y0, z0);
+			t.vertex(x0, y0, z0);
+		}
+		if(face == 3) {
+			t.vertex(x0, y1, z1);
+			t.vertex(x0, y0, z1);
+			t.vertex(x1, y0, z1);
+			t.vertex(x1, y1, z1);
+		}
+		if(face == 4) {
+			t.vertex(x0, y1, z1);
+			t.vertex(x0, y1, z0);
+			t.vertex(x0, y0, z0);
+			t.vertex(x0, y0, z1);
+		}
+		if(face == 5) {
+			t.vertex(x1, y0, z1);
+			t.vertex(x1, y0, z0);
+			t.vertex(x1, y1, z0);
+			t.vertex(x1, y1, z1);
+		}
+	}
 
 }
